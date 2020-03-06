@@ -8,10 +8,15 @@ import Network.HTTP.Client
 
 import qualified Data.ByteString.Lazy.Char8 as L8
 
-import           Network.HTTP.Simple
+--import           Network.HTTP.Simple
 
 import Text.HTML.TagSoup
 
+import Network.Connection
+import Network.Socket
+import Network.HTTP.Client.TLS
+
+import Network.HTTP.Types.Status (statusCode)
 -- Scraper is just like a converting format  from some input to output
 -- Selector is just like a selecting format to select DOM node
 -- chroot accept an old Scraper and output a new Scraper,because it add a range by Selector for old Scraper
@@ -24,7 +29,7 @@ data Comment
     deriving (Show, Eq)
 
 allComments :: IO (Maybe [Comment])
-allComments = scrapeURL "file:///home/kyle/Haskell/Scalpel/article.html" comments
+allComments = scrapeURL "file:///home/kyle/Haskell/ScalpelNote/article.html" comments
    where
        comments :: Scraper String [Comment]
        comments = chroots ("div" @: [hasClass "container"]) comment
@@ -91,11 +96,63 @@ ccs = scrape (text anySelector) cc
 dds = scrapeStringLike ss (text anySelector)
 -- Just "hello"
 
-main2 :: IO ()
-main2 = do
-    response <- httpLBS "http://httpbin.org/get"
+bing = scrapeURL "www.bing.com" (text "div") :: IO (Maybe String)
 
-    putStrLn $ "The status code was: " ++
-               show (getResponseStatusCode response)
-    print $ getResponseHeader "Content-Type" response
-    L8.putStrLn $ getResponseBody response
+
+-- use document.charset to check encoding format of html
+
+-- newManager  managerSetProxy useProxy :: Proxy -> ProxyOverride
+-- Network.HTTP.Client.TLS
+-- tlsManagerSettings
+-- type SockSettings = ProxySettings  SockSettingsSimple HostName PortNumber
+-- TLSSettingsSimple Simple TLS settings. recommended to use
+
+tlsSetting = TLSSettingsSimple False False False -- import Network.Connection
+hostAddr = "127.0.0.1" :: HostName -- import Network.Socket
+portNumber = 5678 :: PortNumber
+proxySetting = SockSettingsSimple hostAddr portNumber
+
+-- import Network.HTTP.Client.TLS
+--managerSetting = mkManagerSettings tlsSetting (Just proxySetting)
+-- newManager :: ManagerSettings -> IO Manager
+-- v2Manger = newManager managerSetting
+--setGlobalManager :: Manager -> IO ()
+
+getGoogleAndBing :: IO ()
+getGoogleAndBing = do
+  -- let managerSetting = mkManagerSettings tlsSetting (Just proxySetting)
+  -- let v2Manger = newManager managerSetting
+  -- manager <- v2Manger
+  -- setGlobalManager manager
+  -- string <-scrapeURL "https://www.google.com" (text "div") :: IO (Maybe String)
+  -- print string
+  let v2managerSetting = mkManagerSettings tlsSetting (Just proxySetting)
+  v2manager <- newManager v2managerSetting
+  systemManager <- newManager tlsManagerSettings
+  -- manager <- newManager defaultManagerSettings
+  requestGoogle <- parseRequest "https://www.google.com/"
+  responseGoogle <- httpLbs requestGoogle v2manager
+  requestBing <- parseRequest "https://www.bing.com"
+  responseBing <- httpLbs requestBing systemManager
+  putStrLn $ "The Google status code was: " ++ (show $ statusCode $ responseStatus responseGoogle)
+  print $ scrapeStringLike (responseBody responseGoogle) (attr "itemtype" "html") -- html tag, get its attribute itemtype's value
+  --print $ responseBody response
+  --print $ scrapeStringLike (responseBody response) (text "html") -- :: IO (Maybe String)
+  
+  putStrLn $ "The Bing status code was: " ++ (show $ statusCode $ responseStatus responseBing)
+  print $ scrapeStringLike (responseBody responseBing) (attr "lang" "html")
+-- result in GHCI
+--  getGoogleAndBing
+-- The Google status code was: 200
+-- Just "http://schema.org/WebPage"
+-- The Bing status code was: 200
+-- Just "zh"
+
+-- main2 :: IO ()
+-- main2 = do
+--     response <- httpLBS "http://httpbin.org/get"
+
+--     putStrLn $ "The status code was: " ++
+--                show (getResponseStatusCode response)
+--     print $ getResponseHeader "Content-Type" response
+--     L8.putStrLn $ getResponseBody response
