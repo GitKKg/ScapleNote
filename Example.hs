@@ -21,6 +21,9 @@ import Network.HTTP.Types.Status (statusCode)
 -- Selector is just like a selecting format to select DOM node
 -- chroot accept an old Scraper and output a new Scraper,because it add a range by Selector for old Scraper
 
+import Control.Exception
+import Data.Either
+import Data.Typeable
 
 type Author = String
 data Comment
@@ -108,7 +111,8 @@ bing = scrapeURL "www.bing.com" (text "div") :: IO (Maybe String)
 -- TLSSettingsSimple Simple TLS settings. recommended to use
 
 tlsSetting = TLSSettingsSimple False False False -- import Network.Connection
-hostAddr = "127.0.0.1" :: HostName -- import Network.Socket
+hostAddr = "192.168.1.2" :: HostName -- import Network.Socket
+-- using 192.168.1.2 will Exception as ConnectionTimeout
 portNumber = 5678 :: PortNumber
 proxySetting = SockSettingsSimple hostAddr portNumber
 
@@ -130,23 +134,32 @@ getGoogleAndBing = do
   v2manager <- newManager v2managerSetting
   systemManager <- newManager tlsManagerSettings
   -- manager <- newManager defaultManagerSettings
-  requestGoogle <- parseRequest "https://www.google.com/"
-  responseGoogle <- httpLbs requestGoogle v2manager
   requestBing <- parseRequest "https://www.bing.com"
   responseBing <- httpLbs requestBing systemManager
-  putStrLn $ "The Google status code was: " ++ (show $ statusCode $ responseStatus responseGoogle)
-  print $ scrapeStringLike (responseBody responseGoogle) (attr "itemtype" "html") -- html tag, get its attribute itemtype's value
-  --print $ responseBody response
-  --print $ scrapeStringLike (responseBody response) (text "html") -- :: IO (Maybe String)
-  
   putStrLn $ "The Bing status code was: " ++ (show $ statusCode $ responseStatus responseBing)
   print $ scrapeStringLike (responseBody responseBing) (attr "lang" "html")
+  print "ok"
+  requestGoogle <- parseRequest "https://www.google.com/"
+  catch (getGoogle requestGoogle v2manager) handleE
+    where getGoogle requestGoogle v2manager = do
+            responseGoogle <- httpLbs requestGoogle v2manager
+            putStrLn $ "The Google status code was: " ++ (show $ statusCode $ responseStatus responseGoogle)
+            print $ scrapeStringLike (responseBody responseGoogle) (attr "itemtype" "html")
+          handleE (SomeException e) = do
+            putStrLn $ "\n Caught exception of type "  ++ show (typeOf e) ++ "\n"
+            putStrLn $ show e
+
+  -- IO can't be followed after catch,why?
+  --print "not ok"
+
+  
 -- result in GHCI
 --  getGoogleAndBing
 -- The Google status code was: 200
 -- Just "http://schema.org/WebPage"
 -- The Bing status code was: 200
 -- Just "zh"
+
 
 -- main2 :: IO ()
 -- main2 = do
