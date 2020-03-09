@@ -111,7 +111,7 @@ bing = scrapeURL "www.bing.com" (text "div") :: IO (Maybe String)
 -- TLSSettingsSimple Simple TLS settings. recommended to use
 
 tlsSetting = TLSSettingsSimple False False False -- import Network.Connection
-hostAddr = "192.168.1.2" :: HostName -- import Network.Socket
+hostAddr = "127.0.0.1" :: HostName -- import Network.Socket
 -- using 192.168.1.2 will Exception as ConnectionTimeout
 portNumber = 5678 :: PortNumber
 proxySetting = SockSettingsSimple hostAddr portNumber
@@ -121,6 +121,27 @@ proxySetting = SockSettingsSimple hostAddr portNumber
 -- newManager :: ManagerSettings -> IO Manager
 -- v2Manger = newManager managerSetting
 --setGlobalManager :: Manager -> IO ()
+
+
+-- must take the whole op outside of where clause
+getGoogle requestGoogle v2manager = do
+            responseGoogleE <-
+              try $  httpLbs requestGoogle v2manager :: IO (Either HttpException (Response L8.ByteString))
+            case responseGoogleE of
+              Left e  -> do
+                print "failed to get google\n"
+                print e
+              Right responseGoogle -> do
+                putStrLn $ "The Google status code was: " ++ (show $ statusCode $ responseStatus responseGoogle)
+                print $ scrapeStringLike (responseBody responseGoogle) (attr "itemtype" "html")
+
+getGoogleCatch requestGoogle v2manager = do
+  responseGoogle <- httpLbs requestGoogle v2manager
+  putStrLn $ "The Google status code was: " ++ (show $ statusCode $ responseStatus responseGoogle)
+  print $ scrapeStringLike (responseBody responseGoogle) (attr "itemtype" "html")
+handleE (SomeException e) = do
+  putStrLn $ "\n Caught exception of type "  ++ show (typeOf e) ++ "\n"
+  putStrLn $ show e
 
 getGoogleAndBing :: IO ()
 getGoogleAndBing = do
@@ -135,20 +156,25 @@ getGoogleAndBing = do
   systemManager <- newManager tlsManagerSettings
   -- manager <- newManager defaultManagerSettings
   requestBing <- parseRequest "https://www.bing.com"
+  
+  requestGoogle <- parseRequest "https://www.google.com/"
+  getGoogle requestGoogle v2manager 
+    -- where getGoogle requestGoogle v2manager = do
+    --         responseGoogleE <-
+    --           try $  httpLbs requestGoogle v2manager :: IO (Either HttpException (Response L8.ByteString))
+    --         case responseGoogleE of
+    --           Left e  -> print "failed to get google\n"
+    --           Right responseGoogle -> do
+    --             putStrLn $ "The Google status code was: " ++ (show $ statusCode $ responseStatus responseGoogle)
+    --             print $ scrapeStringLike (responseBody responseGoogle) (attr "itemtype" "html")
+  -- Note!!: no sentences could follow after where clause!
+  -- print "could not follow getGoogle for getGoogle gets where"
   responseBing <- httpLbs requestBing systemManager
   putStrLn $ "The Bing status code was: " ++ (show $ statusCode $ responseStatus responseBing)
   print $ scrapeStringLike (responseBody responseBing) (attr "lang" "html")
-  print "ok"
-  requestGoogle <- parseRequest "https://www.google.com/"
-  catch (getGoogle requestGoogle v2manager) handleE
-    where getGoogle requestGoogle v2manager = do
-            responseGoogle <- httpLbs requestGoogle v2manager
-            putStrLn $ "The Google status code was: " ++ (show $ statusCode $ responseStatus responseGoogle)
-            print $ scrapeStringLike (responseBody responseGoogle) (attr "itemtype" "html")
-          handleE (SomeException e) = do
-            putStrLn $ "\n Caught exception of type "  ++ show (typeOf e) ++ "\n"
-            putStrLn $ show e
-
+  print "Google again by Catch"
+  catch (getGoogleCatch requestGoogle v2manager) handleE
+  print "over"
   -- IO can't be followed after catch,why?
   --print "not ok"
 
