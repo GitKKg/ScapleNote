@@ -25,6 +25,9 @@ import Control.Exception
 import Data.Either
 import Data.Typeable
 
+import Network.HTTP.Types.Header
+import Data.CaseInsensitive
+
 type Author = String
 data Comment
     = TextComment Author String
@@ -122,6 +125,23 @@ proxySetting = SockSettingsSimple hostAddr portNumber
 -- v2Manger = newManager managerSetting
 --setGlobalManager :: Manager -> IO ()
 
+bingHeaderName :: HeaderName
+bingHeaderName = undefined
+  
+bingRqHeaders :: RequestHeaders
+-- all content are from F12 Network document of Firefox when access www.bing.com
+bingRqHeaders = [(hAccept,"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"),
+                 --AcceptEncoding seems html document changed, so not set
+                --(hAcceptEncoding,"gzip, deflate, br"),
+                (hAcceptLanguage,"zh,en-US;q=0.7,en;q=0.3"),
+                (hCacheControl,"max-age=0"),
+                (hConnection,"keep-alive"),
+                -- Cookie make Bing select show en not zh
+                (hCookie,"MUID=38AA05FA31096B2508B509D630276A47; SRCHD=AF=NOFORM; SRCHUID=V=2&GUID=81C4D836F1224072B3983349F98FCEE6&dmnchg=1; SRCHUSR=DOB=20180714&T=1582533772000; SRCHHPGUSR=CW=25&CH=811&DPR=1&UTC=480&WTS=63719414472&HV=1583817677; ENSEARCH=BENVER=1; ULC=P=792C|86:@34&H=792C|86:34&T=792C|86:34:7; _ITAB=STAB=TR; MUIDB=38AA05FA31096B2508B509D630276A47; _UR=MC=1; _FP=hta=off; SNRHOP=I=&TS=; _EDGE_S=mkt=zh-cn&SID=0D23D493C3576A113AF8DA1AC2286B47; _SS=SID=0D23D493C3576A113AF8DA1AC2286B47&bIm=542; ipv6=hit=1583821277045&t=4"),
+                (hHost,"cn.bing.com"),
+                (hTE,"Trailers"),
+                (hUpgrade,"1"),
+                (hUserAgent,"Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101 Firefox/68.0")]
 
 -- must take the whole op outside of where clause
 getGoogle requestGoogle v2manager = do
@@ -133,6 +153,7 @@ getGoogle requestGoogle v2manager = do
                 print e
               Right responseGoogle -> do
                 putStrLn $ "The Google status code was: " ++ (show $ statusCode $ responseStatus responseGoogle)
+                print $ responseHeaders responseGoogle
                 print $ scrapeStringLike (responseBody responseGoogle) (attr "itemtype" "html")
 
 getGoogleCatch requestGoogle v2manager = do
@@ -155,9 +176,14 @@ getGoogleAndBing = do
   v2manager <- newManager v2managerSetting
   systemManager <- newManager tlsManagerSettings
   -- manager <- newManager defaultManagerSettings
-  requestBing <- parseRequest "https://www.bing.com"
+  requestBingNoHead <- parseRequest "https://www.bing.com"
+  let requestBing = requestBingNoHead {requestHeaders = bingRqHeaders }
+  print $ "Bing request header is"
+  print $ requestHeaders requestBing -- Just [],should fill
   
   requestGoogle <- parseRequest "https://www.google.com/"
+  print $ "Google request header is"
+  print $ requestHeaders requestGoogle -- Just [],should fill
   getGoogle requestGoogle v2manager 
     -- where getGoogle requestGoogle v2manager = do
     --         responseGoogleE <-
@@ -169,9 +195,12 @@ getGoogleAndBing = do
     --             print $ scrapeStringLike (responseBody responseGoogle) (attr "itemtype" "html")
   -- Note!!: no sentences could follow after where clause!
   -- print "could not follow getGoogle for getGoogle gets where"
+  
   responseBing <- httpLbs requestBing systemManager
   putStrLn $ "The Bing status code was: " ++ (show $ statusCode $ responseStatus responseBing)
   print $ scrapeStringLike (responseBody responseBing) (attr "lang" "html")
+  print $ responseHeaders responseBing
+  --print $ responseBody responseBing
   print "Google again by Catch"
   catch (getGoogleCatch requestGoogle v2manager) handleE
   print "over"
