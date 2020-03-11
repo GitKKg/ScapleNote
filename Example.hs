@@ -232,3 +232,11 @@ getGoogleAndBing = do
 --                show (getResponseStatusCode response)
 --     print $ getResponseHeader "Content-Type" response
 --     L8.putStrLn $ getResponseBody response
+
+
+-- use // and atDepth to go inside DOM node as selector, "div" // "a" atDepth 1 
+get163 :: IO ()
+get163 = do
+  systemManager <- newManager tlsManagerSettings
+  requestBingNoHead <- parseRequest "https://www.bing.com"
+  return ()
