@@ -28,6 +28,8 @@ import Data.Typeable
 import Network.HTTP.Types.Header
 import Data.CaseInsensitive
 
+import Data.Text.Encoding
+
 type Author = String
 data Comment
     = TextComment Author String
@@ -200,6 +202,12 @@ getGoogleAndBing = do
   putStrLn $ "The Bing status code was: " ++ (show $ statusCode $ responseStatus responseBing)
   print $ scrapeStringLike (responseBody responseBing) (attr "lang" "html")
   print $ responseHeaders responseBing
+
+  -- F12 ,Network ,document,Headers,Response Headers
+  -- from response header we know content-type is text/html; charset=utf-8,so must use decodeUtf8 to get human-readable text from responseBody
+  print $ decodeUtf8 ( L8.toStrict  (responseBody responseBing)) -- import Data.Text.Encoding
+  -- decodeUtf8 $ ((L8.toStrict) . (L8.pack)) "Chinese Characters"
+
   --print $ responseBody responseBing
   print "Google again by Catch"
   catch (getGoogleCatch requestGoogle v2manager) handleE
