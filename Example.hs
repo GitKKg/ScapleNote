@@ -250,6 +250,9 @@ stockTab =  "div" @: [hasClass "inner_box"] // "table" @:[AttributeString "class
 -- Just "date"
 -- use // and atDepth to go inside DOM node as selector, "div" // "a" atDepth 1
 
+data1 :: Selector
+data1 = stockTab // "tr" @: [hasClass ""] `atDepth` 1
+
 
 get163 :: IO ()
 get163 = do
@@ -259,4 +262,5 @@ get163 = do
   putStrLn $ "The Bing status code was: " ++ (show $ statusCode $ responseStatus response163NoHead)
   print $ scrapeStringLike (responseBody response163NoHead) ( text stockName)
   print $ scrapeStringLike (responseBody response163NoHead) ( attr "class"  stockTab)
+  print $ scrapeStringLike (responseBody response163NoHead) (html data1)
   
