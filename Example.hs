@@ -233,6 +233,9 @@ getGoogleAndBing = do
 --     print $ getResponseHeader "Content-Type" response
 --     L8.putStrLn $ getResponseBody response
 
+-- "div" @: [AttributeString "id" @= "out" ]
+stockName :: Selector
+stockName = ("h1" @: [AttributeString "class" @= "tittle_01"]) // ("span" @: [AttributeString "class" @= "name"]) `atDepth` 1
 
 -- use // and atDepth to go inside DOM node as selector, "div" // "a" atDepth 1 
 get163 :: IO ()
