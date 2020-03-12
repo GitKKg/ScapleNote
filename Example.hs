@@ -234,12 +234,29 @@ getGoogleAndBing = do
 --     L8.putStrLn $ getResponseBody response
 
 -- "div" @: [AttributeString "id" @= "out" ]
-stockName :: Selector
-stockName = ("h1" @: [AttributeString "class" @= "tittle_01"]) // ("span" @: [AttributeString "class" @= "name"]) `atDepth` 1
 
--- use // and atDepth to go inside DOM node as selector, "div" // "a" atDepth 1 
+-- atDepth just describe relationship of a // b ,about b is how many layers in a
+stockName :: Selector
+stockName = "h1" @: [AttributeString "class" @= "title_01"]  // "span" @: [ hasClass "name"] `atDepth` 1 
+-- hasClass not accept value with space seperated string
+-- so space seperated string attribute value can only match with @=, see below
+
+stockTab :: Selector
+stockTab =  "div" @: [hasClass "inner_box"] // "table" @:[AttributeString "class" @= "table_bg001 border_box limit_sale"] `atDepth` 1
+
+-- tab = "<table class=\"table_bg001 border_box limit_sale\">date </table>" :: String
+-- sel = TagString "table"  @:[AttributeString "class" @= "table_bg001 border_box limit_sale"] :: Selector
+-- scrapeStringLike tab (text sel)
+-- Just "date"
+-- use // and atDepth to go inside DOM node as selector, "div" // "a" atDepth 1
+
+
 get163 :: IO ()
 get163 = do
   systemManager <- newManager tlsManagerSettings
-  requestBingNoHead <- parseRequest "https://www.bing.com"
-  return ()
+  request163NoHead <- parseRequest "http://quotes.money.163.com/trade/lsjysj_600000.html?year=2020&season=1"
+  response163NoHead <- httpLbs request163NoHead systemManager
+  putStrLn $ "The Bing status code was: " ++ (show $ statusCode $ responseStatus response163NoHead)
+  print $ scrapeStringLike (responseBody response163NoHead) ( text stockName)
+  print $ scrapeStringLike (responseBody response163NoHead) ( attr "class"  stockTab)
+  
