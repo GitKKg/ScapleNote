@@ -30,6 +30,8 @@ import Data.CaseInsensitive
 
 import Data.Text.Encoding
 
+import Data.Maybe
+
 type Author = String
 data Comment
     = TextComment Author String
@@ -260,7 +262,14 @@ get163 = do
   request163NoHead <- parseRequest "http://quotes.money.163.com/trade/lsjysj_600000.html?year=2020&season=1"
   response163NoHead <- httpLbs request163NoHead systemManager
   putStrLn $ "The Bing status code was: " ++ (show $ statusCode $ responseStatus response163NoHead)
-  print $ scrapeStringLike (responseBody response163NoHead) ( text stockName)
+  -- print is depended on show methord , The show function on String has a limited output character set, it dose not show utf8 chinese correcttly, use purStr or putStrLn
+  L8.putStrLn.fromJust $ scrapeStringLike (responseBody response163NoHead) ( text stockName)
   print $ scrapeStringLike (responseBody response163NoHead) ( attr "class"  stockTab)
-  print $ scrapeStringLike (responseBody response163NoHead) (html data1)
+  L8.putStr.fromJust $ scrapeStringLike (responseBody response163NoHead) (html data1)
+
+-- result in GHCI:
+-- The Bing status code was: 200
+-- 浦发银行(600000) 历史交易数据
+-- Just "table_bg001 border_box limit_sale"
+-- Just "<tr class><td>2020-03-12</td><td class=\"cGreen\">10.75</td><td class=\"cGreen\">10.75</td><td class=\"cGreen\">10.61</td><td class=\"cGreen\">10.64</td><td class=\"cGreen\">-0.13</td><td class=\"cGreen\">-1.21</td><td>326,324</td><td>34,816</td><td>1.30</td><td>0.12</td></tr>"
   
