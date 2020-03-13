@@ -1,5 +1,5 @@
 flags: {}
 packages:
 - .
-extra-deps: [scalpel-core-0.6.1,scalpel-0.6.1]
+extra-deps: [scalpel-core-0.6.1,scalpel-0.6.1,selda-0.4.0.0,selda-sqlite-0.1.7.0]
 resolver: lts-13.4

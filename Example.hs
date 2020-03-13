@@ -32,6 +32,10 @@ import Data.Text.Encoding
 
 import Data.Maybe
 
+import Db -- Db.hs in the same directory,could import directly
+
+hiStock = defaultStock {date = 2020}
+
 type Author = String
 data Comment
     = TextComment Author String
