@@ -253,7 +253,7 @@ stockTab =  "div" @: [hasClass "inner_box"] // "table" @:[AttributeString "class
 -- use // and atDepth to go inside DOM node as selector, "div" // "a" atDepth 1
 
 data1 :: Selector
-data1 = stockTab // "tr" @: [hasClass ""] `atDepth` 1
+data1 = stockTab // "tr" @: [hasClass ""] `atDepth` 1 // "td"
 
 
 get163 :: IO ()
@@ -265,7 +265,9 @@ get163 = do
   -- print is depended on show methord , The show function on String has a limited output character set, it dose not show utf8 chinese correcttly, use purStr or putStrLn
   L8.putStrLn.fromJust $ scrapeStringLike (responseBody response163NoHead) ( text stockName)
   print $ scrapeStringLike (responseBody response163NoHead) ( attr "class"  stockTab)
-  L8.putStr.fromJust $ scrapeStringLike (responseBody response163NoHead) (html data1)
+  traverse L8.putStr $ fromJust $ scrapeStringLike (responseBody response163NoHead) (texts data1)
+  putStrLn "\nover"
+  
 
 -- result in GHCI:
 -- The Bing status code was: 200
