@@ -18,8 +18,8 @@ cabal-version:       >=1.10
 
 executable ScapelNote
   main-is: Example.hs
-  -- other-modules:       
+  --other-modules:       
   -- other-extensions:    
-  build-depends:base,text,scalpel,http-client,bytestring,tagsoup,connection,network,http-client-tls,http-types,case-insensitive,selda,selda-sqlite
+  build-depends:base,text,scalpel,http-client,bytestring,tagsoup,connection,network,http-client-tls,http-types,case-insensitive,selda,selda-sqlite,regex-base,regex-posix
   -- hs-source-dirs:      
   default-language:    Haskell2010

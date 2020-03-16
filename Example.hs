@@ -1,6 +1,9 @@
 -- | 
 {-# LANGUAGE OverloadedStrings #-}
-module Haskell.Scalpel.Example where
+
+--module Haskell.Scalpel.Example where
+-- must comment out, or else stack build will complain "output was redirected with -o, but no output will be generated. because there is no Main module."
+
 import Text.HTML.Scalpel
 import Control.Applicative
 
@@ -33,6 +36,9 @@ import Data.Text.Encoding
 import Data.Maybe
 
 import Db -- Db.hs in the same directory,could import directly
+
+import Text.Regex.Base.RegexLike
+import Text.Regex.Posix.String
 
 hiStock = defaultStock {date = 2020}
 
@@ -256,20 +262,58 @@ stockTab =  "div" @: [hasClass "inner_box"] // "table" @:[AttributeString "class
 -- Just "date"
 -- use // and atDepth to go inside DOM node as selector, "div" // "a" atDepth 1
 
+
 data1 :: Selector
 data1 = stockTab // "tr" @: [hasClass ""] `atDepth` 1 // "td"
+data2 :: Selector
+data2 = stockTab // "tr" @: [hasClass "dbrow" ] `atDepth` 1 // "td"
+
+--  ^ means match from start, $ means match end, ^$ means mathc null
+data1OrData2 = makeRegex ("^$|dbrow" :: String) :: Regex
+data12 :: Selector
+data12 = stockTab // "tr" @: [AttributeString "class" @=~ data1OrData2] `atDepth` 1 // "td"
 
 
-get163 :: IO ()
-get163 = do
+stock163URL = "http://quotes.money.163.com/trade/lsjysj_600000.html?year=2020&season=1" :: String
+
+allStockData :: IO (Maybe [Stock])
+allStockData = scrapeURL stock163URL stockData
+  where
+    stockData :: Scraper String [Stock]
+    stockData = undefined
+
+--undefined
+
+-- some record syntax test
+data T2 = T2
+  {
+    _num2 :: Int
+  }
+
+data T1 = T1
+  {
+    _num :: Int,
+    _date :: Int,
+    _name :: String,
+    _t2 :: T2
+  }
+
+t2 = T2 2
+t1 = T1 1 2 "hi" t2
+t3 = t1 {_t2 = t2 {_num2 = _num2 t2 + 1 }}
+num2 = _num2 . _t2 $ t3
+-- 3
+
+main :: IO ()
+main = do
   systemManager <- newManager tlsManagerSettings
-  request163NoHead <- parseRequest "http://quotes.money.163.com/trade/lsjysj_600000.html?year=2020&season=1"
+  request163NoHead <- parseRequest stock163URL
   response163NoHead <- httpLbs request163NoHead systemManager
   putStrLn $ "The Bing status code was: " ++ (show $ statusCode $ responseStatus response163NoHead)
   -- print is depended on show methord , The show function on String has a limited output character set, it dose not show utf8 chinese correcttly, use purStr or putStrLn
   L8.putStrLn.fromJust $ scrapeStringLike (responseBody response163NoHead) ( text stockName)
   print $ scrapeStringLike (responseBody response163NoHead) ( attr "class"  stockTab)
-  traverse L8.putStr $ fromJust $ scrapeStringLike (responseBody response163NoHead) (texts data1)
+  traverse L8.putStrLn $ fromJust $ scrapeStringLike (responseBody response163NoHead) (texts data12)
   putStrLn "\nover"
   
 
