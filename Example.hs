@@ -42,6 +42,9 @@ import Text.Regex.Posix.String
 
 import Data.Functor
 
+import Data.Text
+
+
 hiStock = defaultStock {date = 2020}
 
 type Author = String
@@ -285,13 +288,26 @@ data12 :: Selector
 data12 = stockTab // "tr" @: [AttributeString "class" @=~ data1OrData2] `atDepth` 1 // "td"
 
 
+
 stock163URL = "http://quotes.money.163.com/trade/lsjysj_600000.html?year=2020&season=1" :: String
 
 allStockData :: IO (Maybe [Stock])
-allStockData = scrapeURL stock163URL stockData
+allStockData = scrapeURL stock163URL stockScraper
   where
-    stockData :: Scraper String [Stock]
-    stockData = undefined
+    stockScraper :: Scraper L8.ByteString [Stock]
+    stockScraper = chroots (stockTab // "tr" @: [AttributeString "class" @=~ data1OrData2] `atDepth` 1)  $ oneDayScraper
+    floorFloat = (floor :: Float -> Int) . (1000 *)
+    oneDayScraper :: Scraper L8.ByteString Stock
+    oneDayScraper = inSerial $ do
+      --date <-  (pack . L8.unpack) <$> (seekNext $ text "td")
+      date <-  (read :: String -> Int) . L8.unpack  <$> (seekNext $ text "td")
+      open <- floorFloat . (read :: String -> Float) . L8.unpack <$> (seekNext $ text "td") 
+      high <- floorFloat . (read :: String -> Float) . L8.unpack <$> (seekNext $ text "td")
+      low <-  floorFloat . (read :: String -> Float) . L8.unpack <$> (seekNext $ text "td")
+      close <- floorFloat . (read :: String -> Float) . L8.unpack <$> (seekNext $ text "td")
+      _ <- seekNext $ text "td"
+      _ <- seekNext $ text "td"
+      return hiStock
 
 --undefined
 
@@ -327,7 +343,7 @@ get163 = do
   traverse L8.putStrLn $ fromJust $ scrapeStringLike (responseBody response163NoHead) (texts data12)
   putStrLn "\nover"
   traverse L8.putStrLn $ fromJust $ scrapeStringLike (responseBody response163NoHead) (texts data1 <|> texts data2)
-  -- wht <|> get no effect, just scrape data2 ?
+  -- why <|> get no effect, just scrape data2 ?
   return ()
   
 
