@@ -40,6 +40,8 @@ import Db -- Db.hs in the same directory,could import directly
 import Text.Regex.Base.RegexLike
 import Text.Regex.Posix.String
 
+import Data.Functor
+
 hiStock = defaultStock {date = 2020}
 
 type Author = String
@@ -49,7 +51,15 @@ data Comment
     deriving (Show, Eq)
 
 allComments :: IO (Maybe [Comment])
-allComments = scrapeURL "file:///home/kyle/Haskell/ScalpelNote/article.html" comments
+-- scrapeURL not support file:/// like protocol, raise Exception: InvalidUrlException "file:///home/kyle/Haskell/ScalpelNote/article.html" "Invalid scheme"
+allComments = --scrapeURL "file:///home/kyle/Haskell/ScalpelNote/article.html" comments
+
+  -- this one below is more understoobable
+  -- return . flip scrapeStringLike comments =<< (readFile "article.html")
+  
+  -- (<&>) :: Functor f => f a -> (a -> b) -> f b , just reverted order of <$>
+  -- below one pass too, but more obscure, $ is passive voice
+  ((return .  scrapeStringLike)  =<< (readFile "article.html")) <&> ($ comments)
    where
        comments :: Scraper String [Comment]
        comments = chroots ("div" @: [hasClass "container"]) comment
@@ -269,7 +279,8 @@ data2 :: Selector
 data2 = stockTab // "tr" @: [hasClass "dbrow" ] `atDepth` 1 // "td"
 
 --  ^ means match from start, $ means match end, ^$ means mathc null
-data1OrData2 = makeRegex ("^$|dbrow" :: String) :: Regex
+-- honestly, regexLike relevant doc is pile of shit
+data1OrData2 = makeRegex ("^$|dbrow" :: String) :: Regex -- must specify type notation "String" or else complier will complain
 data12 :: Selector
 data12 = stockTab // "tr" @: [AttributeString "class" @=~ data1OrData2] `atDepth` 1 // "td"
 
@@ -304,8 +315,8 @@ t3 = t1 {_t2 = t2 {_num2 = _num2 t2 + 1 }}
 num2 = _num2 . _t2 $ t3
 -- 3
 
-main :: IO ()
-main = do
+get163 :: IO ()
+get163 = do
   systemManager <- newManager tlsManagerSettings
   request163NoHead <- parseRequest stock163URL
   response163NoHead <- httpLbs request163NoHead systemManager
@@ -315,6 +326,9 @@ main = do
   print $ scrapeStringLike (responseBody response163NoHead) ( attr "class"  stockTab)
   traverse L8.putStrLn $ fromJust $ scrapeStringLike (responseBody response163NoHead) (texts data12)
   putStrLn "\nover"
+  traverse L8.putStrLn $ fromJust $ scrapeStringLike (responseBody response163NoHead) (texts data1 <|> texts data2)
+  -- wht <|> get no effect, just scrape data2 ?
+  return ()
   
 
 -- The Bing status code was: 200
