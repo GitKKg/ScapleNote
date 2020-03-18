@@ -1,5 +1,5 @@
 -- | 
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings ,DuplicateRecordFields #-}
 
 --module Haskell.Scalpel.Example where
 -- must comment out, or else stack build will complain "output was redirected with -o, but no output will be generated. because there is no Main module."
@@ -45,7 +45,7 @@ import Data.Functor
 import Data.Text
 
 
-hiStock = defaultStock {date = 2020}
+hiStock = defaultStock {_date = 2020} :: Stock
 
 type Author = String
 data Comment
@@ -296,20 +296,36 @@ allStockData = scrapeURL stock163URL stockScraper
   where
     stockScraper :: Scraper L8.ByteString [Stock]
     stockScraper = chroots (stockTab // "tr" @: [AttributeString "class" @=~ data1OrData2] `atDepth` 1)  $ oneDayScraper
-    floorFloat = (floor :: Float -> Int) . (1000 *)
+    -- int save much more database space than float
+    floorFloatToInt = (floor :: Float -> Int) . (1000 *) 
+    dateToNum :: String -> String
+    dateToNum = unpack . mconcat . splitOn (pack "-") . pack  -- 2020-01-01 to 20200101
+    removeComma :: String -> String -- in case we get 120,500.56 such great number
+    removeComma = unpack . mconcat . splitOn (pack ",") . pack 
     oneDayScraper :: Scraper L8.ByteString Stock
     oneDayScraper = inSerial $ do
       --date <-  (pack . L8.unpack) <$> (seekNext $ text "td")
-      date <-  (read :: String -> Int) . L8.unpack  <$> (seekNext $ text "td")
-      open <- floorFloat . (read :: String -> Float) . L8.unpack <$> (seekNext $ text "td") 
-      high <- floorFloat . (read :: String -> Float) . L8.unpack <$> (seekNext $ text "td")
-      low <-  floorFloat . (read :: String -> Float) . L8.unpack <$> (seekNext $ text "td")
-      close <- floorFloat . (read :: String -> Float) . L8.unpack <$> (seekNext $ text "td")
+      date <-  (read :: String -> Int) . dateToNum . L8.unpack  <$> (seekNext $ text "td")
+      open <- floorFloatToInt . (read :: String -> Float) .removeComma . L8.unpack <$> (seekNext $ text "td") 
+      high <- floorFloatToInt . (read :: String -> Float) .removeComma . L8.unpack <$> (seekNext $ text "td")
+      low <-  floorFloatToInt . (read :: String -> Float) .removeComma . L8.unpack <$> (seekNext $ text "td")
+      close <- floorFloatToInt . (read :: String -> Float) .removeComma . L8.unpack <$> (seekNext $ text "td")
       _ <- seekNext $ text "td"
       _ <- seekNext $ text "td"
-      return hiStock
+      shares <- (floor :: Float -> Int) . (read :: String -> Float) .removeComma . L8.unpack <$> (seekNext $ text "td") -- in 100, one hand stock
+      value <- (floor :: Float -> Int) . (read :: String -> Float) .removeComma . L8.unpack <$> (seekNext $ text "td") -- in 10 thousnad RMB Yuan
+      return $ defaultStock {
+        _date = date,
+        _shares = shares,
+        _open = open,
+        _high = high,
+        _close = close,
+        _low = low,
+        _value = value
+                            }
 
---undefined
+printAllStock :: IO ()
+printAllStock =  allStockData >>= traverse (putStr .show ) . fromJust >> putStr "\nover\n"
 
 -- some record syntax test
 data T2 = T2
@@ -340,9 +356,9 @@ get163 = do
   -- print is depended on show methord , The show function on String has a limited output character set, it dose not show utf8 chinese correcttly, use purStr or putStrLn
   L8.putStrLn.fromJust $ scrapeStringLike (responseBody response163NoHead) ( text stockName)
   print $ scrapeStringLike (responseBody response163NoHead) ( attr "class"  stockTab)
-  traverse L8.putStrLn $ fromJust $ scrapeStringLike (responseBody response163NoHead) (texts data12)
+  traverse L8.putStrLn . fromJust $ scrapeStringLike (responseBody response163NoHead) (texts data12)
   putStrLn "\nover"
-  traverse L8.putStrLn $ fromJust $ scrapeStringLike (responseBody response163NoHead) (texts data1 <|> texts data2)
+  traverse L8.putStrLn . fromJust $ scrapeStringLike (responseBody response163NoHead) (texts data1 <|> texts data2)
   -- why <|> get no effect, just scrape data2 ?
   return ()
   
