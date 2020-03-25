@@ -370,6 +370,15 @@ get163 = do
   -- why <|> get no effect, just scrape data2 ?
   return ()
 
+-- instal text-icu to support GBK of html
+-- sudo dpkg -i libicu-dev_60.2-6ubuntu1_amd64.deb 
+-- sudo apt-get install libicu-le-hb-dev
+-- sudo apt-get install libicu-dev
+-- sudo apt-get install icu-devtools
+-- sudo apt --fix-broken install
+-- proxychains sudo apt --fix-broken install
+-- sudo apt --fix-broken install
+-- proxychains stack install text-icu
 
 -- just set in Emacs,or else GBK not show normal even if you call ICU.toUnicode  
 -- (set-language-environment 'utf-8)
