@@ -23,8 +23,8 @@ data Stock = Stock  -- the field member name must be exact same with field of ta
     _high :: Int,
     _close :: Int,
     _low :: Int,
-    _average :: Double,
-    _fuquan_average :: Double
+    _average :: Int,
+    _fuquan_average :: Int
   } deriving (Generic) -- not deriving Show, for default show not show utf8 Chinese correcttly
 
 instance SqlRow Stock
@@ -41,5 +41,7 @@ instance Show Stock where
     ",\n_low =" ++ (show . (/ 1000) . (fromIntegral :: Int -> Float). _low $ stock)  ++
     ",\n_shares =" ++ (show  . _shares $ stock) ++
     ",\n_value =" ++ (show  . _value $ stock) ++
+    ",\n_average =" ++ (show  . _average $ stock) ++
+    ",\n_fuquan_average =" ++ (show  . _fuquan_average $ stock) ++
     "\n}\n"
-defaultStock = Stock "600000" 20200101 "浦发银行" 0 0 0.0 0 0 0 0 0.0 0.0 
+defaultStock = Stock "600000" 20200101 "浦发银行" 0 0 0.0 0 0 0 0 0 0
