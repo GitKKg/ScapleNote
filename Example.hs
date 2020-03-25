@@ -45,6 +45,14 @@ import Data.Functor
 import Data.Text
 
 
+import qualified Data.Text.Encoding as T       -- text
+import qualified Data.Text.IO as T
+import qualified Data.Text as T
+import qualified Data.Text.ICU.Convert as ICU  -- text-icu   ,proxychains stack install text-icu
+import qualified Data.Text.ICU as ICU
+
+
+
 hiStock = defaultStock {_date = 2020} :: Stock
 
 type Author = String
@@ -361,7 +369,23 @@ get163 = do
   traverse L8.putStrLn . fromJust $ scrapeStringLike (responseBody response163NoHead) (texts data1 <|> texts data2)
   -- why <|> get no effect, just scrape data2 ?
   return ()
-  
+
+
+-- just set in Emacs,or else GBK not show normal even if you call ICU.toUnicode  
+-- (set-language-environment 'utf-8)
+-- (set-default-coding-systems 'utf-8)
+-- (set-terminal-coding-system 'utf-8)
+sinaGBKURL = "http://money.finance.sina.com.cn/corp/go.php/vISSUE_ShareBonus/stockid/002166.phtml" :: String
+getSinaGBK :: IO ()
+getSinaGBK = do
+  systemManager <- newManager tlsManagerSettings
+  requestGBKNoHead <- parseRequest sinaGBKURL
+  responseGBKNoHead <- httpLbs requestGBKNoHead systemManager
+  gbk <- ICU.open "gbk" Nothing
+  let txt :: T.Text
+      txt = ICU.toUnicode gbk $ L8.toStrict $ responseBody responseGBKNoHead
+  T.putStrLn txt
+
 
 -- The Bing status code was: 200
 -- 浦发银行(600000) 历史交易数据
