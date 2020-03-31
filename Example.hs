@@ -51,7 +51,7 @@ import qualified Data.Text as T
 import qualified Data.Text.ICU.Convert as ICU  -- text-icu   ,proxychains stack install text-icu
 import qualified Data.Text.ICU as ICU
 
-
+import Data.Text.IO as T (putStr)
 
 hiStock = defaultStock {_date = 2020} :: Stock
 
@@ -332,8 +332,9 @@ allStockData = scrapeURL stock163URL stockScraper
         _value = value
                             }
 
-printAllStock :: IO ()
-printAllStock =  allStockData >>= traverse (putStr .show ) . fromJust >> putStr "\nover\n"
+printAllStock :: IO () -- (putStr .show )
+--printAllStock =  allStockData >>= traverse print . fromJust >> putStr "\nover\n"
+printAllStock =  allStockData >>= traverse (Prelude.putStr .show ) . fromJust >> Prelude.putStr "\nover\n"
 
 -- some record syntax test
 data T2 = T2
@@ -362,7 +363,10 @@ get163 = do
   response163NoHead <- httpLbs request163NoHead systemManager
   putStrLn $ "The Bing status code was: " ++ (show $ statusCode $ responseStatus response163NoHead)
   -- print is depended on show methord , The show function on String has a limited output character set, it dose not show utf8 chinese correcttly, use purStr or putStrLn
+  -- only L8.putStrLn show utf8 Chinese correcttly,how to do when using Text?!
   L8.putStrLn.fromJust $ scrapeStringLike (responseBody response163NoHead) ( text stockName)
+  putStrLn . L8.unpack.fromJust $ scrapeStringLike (responseBody response163NoHead) ( text stockName)
+  T.putStrLn . T.pack.L8.unpack.fromJust $ scrapeStringLike (responseBody response163NoHead) ( text stockName)
   print $ scrapeStringLike (responseBody response163NoHead) ( attr "class"  stockTab)
   traverse L8.putStrLn . fromJust $ scrapeStringLike (responseBody response163NoHead) (texts data12)
   putStrLn "\nover"
