@@ -366,7 +366,9 @@ get163 = do
   -- only L8.putStrLn show utf8 Chinese correcttly,how to do when using Text?!
   L8.putStrLn.fromJust $ scrapeStringLike (responseBody response163NoHead) ( text stockName)
   putStrLn . L8.unpack.fromJust $ scrapeStringLike (responseBody response163NoHead) ( text stockName)
-  T.putStrLn . T.pack.L8.unpack.fromJust $ scrapeStringLike (responseBody response163NoHead) ( text stockName)
+  -- must use decodeUtf8 making Text show Chinese correcttly ,accompany with unpack in show instance
+  T.putStrLn . decodeUtf8.L8.toStrict.fromJust $ scrapeStringLike (responseBody response163NoHead) ( text stockName)
+  putStrLn .unpack. decodeUtf8.L8.toStrict.fromJust $ scrapeStringLike (responseBody response163NoHead) ( text stockName)
   print $ scrapeStringLike (responseBody response163NoHead) ( attr "class"  stockTab)
   traverse L8.putStrLn . fromJust $ scrapeStringLike (responseBody response163NoHead) (texts data12)
   putStrLn "\nover"
